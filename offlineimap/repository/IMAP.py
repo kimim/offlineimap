@@ -1,6 +1,6 @@
 """ IMAP repository support """
 
-# Copyright (C) 2002-2017 John Goerzen & contributors
+# Copyright (C) 2002-2019 John Goerzen & contributors
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -552,6 +552,19 @@ class IMAPRepository(BaseRepository):
             foldername = self.getreference() + self.getsep() + foldername
         if not foldername: # Create top level folder as folder separator.
             foldername = self.getsep()
+            self.makefolder_single(foldername)
+            return
+
+        parts = foldername.split(self.getsep())
+        folder_paths = [self.getsep().join(parts[:n + 1]) for n in range(len(parts))]
+        for folder_path in folder_paths:
+            try:
+                self.makefolder_single(folder_path)
+            except OfflineImapError as e:
+                if '[ALREADYEXISTS]' not in e.reason:
+                    raise
+
+    def makefolder_single(self, foldername):
         self.ui.makefolder(self, foldername)
         if self.account.dryrun:
             return
